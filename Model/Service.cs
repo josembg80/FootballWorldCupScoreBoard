@@ -4,8 +4,8 @@ namespace Model
 {
     public class Service
     {
-        public List<Game> Games;
-        public List<Team> Teams;
+        private List<Game> Games;
+        private List<Team> Teams;
 
         public Service()
         {
@@ -15,7 +15,7 @@ namespace Model
 
         public void StartGame(string homeTeamName, string awayTeamName)
         {
-            if (GetGame(homeTeamName, awayTeamName) != null)
+            if (GetGame(homeTeamName, awayTeamName, false) != null)
                 throw new Exception(string.Format("Already exists game between \"{0}\" and \"{1}\"", homeTeamName, awayTeamName));
 
             Team homeTeam = GetTeam(homeTeamName);
@@ -26,26 +26,55 @@ namespace Model
 
         public void FinishGame(string homeTeamName, string awayTeamName)
         {
-            Game game = GetGame(homeTeamName, awayTeamName);
-            if (game == null)
-                throw new Exception(string.Format("Not exists game between \"{0}\" and \"{1}\"", homeTeamName, awayTeamName));
+            Game game = GetGame(homeTeamName, awayTeamName, true);
 
             game.Finished = true;
         }
 
+        public void UpdateScore(string homeTeamName, int homeTeamScore, string awayTeamName, int awayTeamScore)
+        {
+            Game game = GetGame(homeTeamName, awayTeamName, true);
+
+            game.HomeScore = homeTeamScore;
+            game.AwayScore = awayTeamScore;
+        }
+
+        public List<Game> GetSummaryGamesByTotalScore()
+        {
+            return Games.Where(f => !f.Finished).OrderByDescending(o => o.TotalScore).ThenByDescending(o => o.LoadDate).ToList();
+        }
+
         private Team GetTeam(string teamName)
         {
-            Team team = Teams.FirstOrDefault(f => f.Name == teamName);
+            if (string.IsNullOrEmpty(teamName))
+                throw new Exception("Team name can not be null");
+
+            Team team = Teams.FirstOrDefault(f => f.Name.ToUpper() == teamName.ToUpper());
 
             if (team == null)
-                throw new Exception(string.Format("Not exists Team with name: {0}", teamName));
+            {
+                team = new Team()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = teamName
+                };
+                Teams.Add(team);
+            }
 
             return team;
         }
 
-        private Game GetGame(string homeTeamName, string awayTeamName)
+        private Game GetGame(string homeTeamName, string awayTeamName, bool throwExceptionWhenGameNull)
         {
-            Game game = Games.FirstOrDefault(g => g.HomeTeam.Name == homeTeamName && g.AwayTeam.Name == awayTeamName);
+            if (string.IsNullOrEmpty(homeTeamName))
+                throw new Exception("Home team name can not be null");
+            if (string.IsNullOrEmpty(awayTeamName))
+                throw new Exception("Away team name can not be null");
+
+            Game game = Games.FirstOrDefault(g => g.HomeTeam.Name.ToUpper() == homeTeamName.ToUpper() && g.AwayTeam.Name.ToUpper() == awayTeamName.ToUpper() && !g.Finished);
+
+            if (throwExceptionWhenGameNull && game == null)
+                throw new Exception(string.Format("Not exists game between \"{0}\" and \"{1}\"", homeTeamName, awayTeamName));
 
             return game;
         }

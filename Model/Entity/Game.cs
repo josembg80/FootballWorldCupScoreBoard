@@ -33,5 +33,13 @@ namespace FootballWorldCupScoreBoard.Model
         public int AwayScore { get; set; }
 
         public bool Finished { get; set; }
+
+        public int TotalScore
+        {
+            get
+            {
+                return HomeScore + AwayScore;
+            }
+        }
     }
 }
